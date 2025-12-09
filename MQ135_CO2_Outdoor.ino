@@ -25,7 +25,7 @@ const float RL_VALUE =
          // IMPORTANTE: Revisar el modulo. Muchos tienen 1k (1.0) o 10k (10.0).
          // Si los valores son muy altos, prueba cambiar a 10.0
 
-const float ATM_CO2 = 427.48; // Valor CO2 diario (Dec 7 2025)
+const float ATM_CO2 = 427.48; // CO2 value (Dec 7 2025)
 
 // MQ-135 Curve for CO2 (approximate parameters)
 // Curve format: ppm = A * (Rs/Ro)^B
