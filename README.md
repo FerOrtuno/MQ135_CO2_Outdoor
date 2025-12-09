@@ -77,5 +77,5 @@ The display shows the value in PPM and a text indicator:
 
 ## ⚖️ License
 
-This project is based on previous works from the Arduino community. Code rewritten and optimized for outdoor calibration.
+This project is based on previous works from the Arduino community. Code rewritten and optimized for outdoor calibration instead a preconfigured calibration related to the MQ-135 sensor itself.
 Free for educational and personal use.
