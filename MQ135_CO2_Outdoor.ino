@@ -56,7 +56,20 @@ void setup() {
 
   pinMode(PIN_MQ135, INPUT);
 
-  lcd.setCursor(0, 0);
+  // Initial Warning Sequence on LCD
+  lcd.clear();
+  lcd.print("IMPORTANT:");
+  lcd.setCursor(0, 1);
+  lcd.print("ACCLIMATIZATION"); // 15 chars
+  delay(2000);
+
+  lcd.clear();
+  lcd.print("If moved Outdoor"); // 16 chars
+  lcd.setCursor(0, 1);
+  lcd.print("Wait 10min OFF"); // 14 chars
+  delay(3000);
+
+  lcd.clear();
   lcd.print("MQ-135 Init...");
 
   Serial.println("--------------------------------------------------");
@@ -65,7 +78,7 @@ void setup() {
   Serial.println("to allow thermal acclimation of the sensor body.");
   Serial.println("--------------------------------------------------");
 
-  delay(2000);
+  delay(1000);
 
   // Calibration Routine
   calibrateSensor();
