@@ -54,14 +54,41 @@ void setup() {
   Serial.begin(9600);
   lcd.init();
   lcd.backlight();
-  // ... (skip unchanged lines) ...
+
+  pinMode(PIN_MQ135, INPUT);
+
+  // Initial Warning Sequence
+  lcd.clear();
+  lcd.print("IMPORTANT:");
+  lcd.setCursor(0, 1);
+  lcd.print("ACCLIMATIZATION");
+  delay(2000);
+
+  lcd.clear();
+  lcd.print("move Outdoor");
+  lcd.setCursor(0, 1);
+  lcd.print("Wait 10min OFF");
+  delay(3000);
+
+  lcd.clear();
+  lcd.print("MQ-135 Init...");
+
+  Serial.println("--------------------------------------------------");
+  Serial.println("IMPORTANT: If moving from indoors to outdoors,");
+  Serial.println("leave device OFF for 10 mins outside before ON");
+  Serial.println("to allow thermal acclimation of the sensor body.");
+  Serial.println("--------------------------------------------------");
+
   delay(1000);
 
   // Calibration Routine
   calibrateSensor();
+  Serial.println("Setup done. Entering Loop...");
+  Serial.flush();
 }
 
 void loop() {
+  Serial.println("Loop start");
   float currentRs = readRs();
 
   // EMA Filter
@@ -72,7 +99,39 @@ void loop() {
   float ppm = getPPM(smoothedRs, Ro);
 
   // Output to Serial (Unchanged)
-  // ...
+  Serial.print("Rs(raw): ");
+  Serial.print(currentRs);
+  Serial.print(" | Rs(smooth): ");
+  Serial.print(smoothedRs);
+  Serial.print(" kOhm | CO2: ");
+  Serial.print(ppm);
+  Serial.println(" ppm");
+
+  // Determine Quality - Use const char* to avoid memory fragmentation
+  const char *status = "";
+  if (ppm < 800) {
+    status = "Air: Excellent";
+  } else if (ppm < 1200) {
+    status = "Air: Good";
+  } else if (ppm < 2000) {
+    status = "Warn: Ventilate";
+  } else if (ppm < 5000) {
+    status = "Unhealthy!";
+  } else {
+    status = "DANGER! TOXIC";
+  }
+
+  // Output to LCD
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("CO2: ");
+  lcd.print(ppm, 0);
+  lcd.print(" ppm");
+
+  lcd.setCursor(0, 1);
+  lcd.print(status);
+
+  delay(1000);
 }
 
 void calibrateSensor() {
