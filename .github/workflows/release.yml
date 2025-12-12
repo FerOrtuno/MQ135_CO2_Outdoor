@@ -8,6 +8,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     
+    permissions:
+      contents: write
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -41,8 +43,8 @@ jobs:
           build/nano_old_bootloader/*.hex
           build/uno/*.hex
           build/firmware.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload Artifact (Manual Run)
       if: github.event_name == 'workflow_dispatch'
