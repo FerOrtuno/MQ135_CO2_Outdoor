@@ -59,7 +59,7 @@ Wiring is very simple:
     *   Ensure the sensor is outdoors (refreshing balcony, window, or garden).
     *   The system will enter "Warming up..." mode.
     *   It will wait for the sensor to heat up and the resistance reading to stabilize (approx. 5-10 minutes).
-    *   Once stable, it automatically calculates the reference value (`Ro`) based on clean atmospheric CO2.
+    *   **Calibration Target:** Once stable, the system sets the current baseline reading to exactly **427.48 ppm** (atmospheric average), ensuring precise calibration.
 
 4.  **Measurement:**
     *   Once calibrated, the PPM value and air status will appear.

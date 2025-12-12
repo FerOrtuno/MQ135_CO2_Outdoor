@@ -58,6 +58,13 @@ void setup() {
 
   lcd.setCursor(0, 0);
   lcd.print("MQ-135 Init...");
+
+  Serial.println("--------------------------------------------------");
+  Serial.println("IMPORTANT: If moving from indoors to outdoors,");
+  Serial.println("leave device OFF for 10 mins outside before ON");
+  Serial.println("to allow thermal acclimation of the sensor body.");
+  Serial.println("--------------------------------------------------");
+
   delay(2000);
 
   // Calibration Routine
@@ -154,9 +161,9 @@ void calibrateSensor() {
   // (ppm/A)^(1/B) = Rs/Ro
   // Ro = Rs / ((ppm/A)^(1/B))
 
-  Serial.println("Stable! Calibrating...");
+  Serial.println("Stable! Calibrating to 427.48 ppm...");
   lcd.clear();
-  lcd.print("Stable! Calc Ro");
+  lcd.print("Calib to 427ppm");
   delay(1000);
 
   // Correction: If current PPM is ATM_CO2
@@ -165,9 +172,11 @@ void calibrateSensor() {
 
   Serial.print("Calibrated Ro: ");
   Serial.println(Ro);
+
   lcd.setCursor(0, 1);
-  lcd.print("Ro: ");
+  lcd.print("Done! Ro:");
   lcd.print(Ro);
+
   delay(3000);
 }
 
