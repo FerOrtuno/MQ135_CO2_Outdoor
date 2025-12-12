@@ -72,12 +72,23 @@ void setup() {
 }
 
 void loop() {
-  float resistanceRs = readRs();
-  float ppm = getPPM(resistanceRs, Ro);
+  float currentRs = readRs();
+
+  // EMA Filter: Smooth = alpha * current + (1 - alpha) * previous
+  // Alpha low (0.1) = Heavy Smoothing (slow reaction, highly stable)
+  // Alpha high (0.5) = Light Smoothing (fast reaction, more jitter)
+  static float smoothedRs = 0;
+  if (smoothedRs == 0)
+    smoothedRs = currentRs; // Init on first run
+  smoothedRs = 0.1 * currentRs + 0.9 * smoothedRs;
+
+  float ppm = getPPM(smoothedRs, Ro);
 
   // Output to Serial
-  Serial.print("Rs: ");
-  Serial.print(resistanceRs);
+  Serial.print("Rs(raw): ");
+  Serial.print(currentRs);
+  Serial.print(" | Rs(smooth): ");
+  Serial.print(smoothedRs);
   Serial.print(" kOhm | CO2: ");
   Serial.print(ppm);
   Serial.println(" ppm");
