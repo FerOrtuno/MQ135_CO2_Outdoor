@@ -64,7 +64,7 @@ void setup() {
   delay(2000);
 
   lcd.clear();
-  lcd.print("If moved Outdoor"); // 16 chars
+  lcd.print("move Outdoor"); // 16 chars
   lcd.setCursor(0, 1);
   lcd.print("Wait 10min OFF"); // 14 chars
   delay(3000);
