@@ -135,13 +135,35 @@ void calibrateSensor() {
 
   // Stability reached, calculate Ro using SMOOTHED Rs
   Serial.println("Stable! Calibrating to 427.48 ppm...");
+  Serial.flush();
+
   lcd.clear();
   lcd.print("Calib to 427ppm");
   delay(1000);
 
   // Correction: If current PPM is ATM_CO2
-  float factor = pow(ATM_CO2 / PARA_A, 1.0 / PARA_B);
+  // Factor = (ATM_CO2 / PARA_A) ^ (1 / PARA_B)
+  // Factor = (427.48 / 116.602) ^ (1 / -2.769) approx 0.623
+  // Calculating manually to avoid runtime pow issues if any.
+  float base = ATM_CO2 / PARA_A;
+  float exponent = 1.0 / PARA_B;
+  float factor = pow(base, exponent);
+
+  Serial.print("Factor: ");
+  Serial.println(factor);
+
+  if (factor == 0)
+    factor = 0.623; // Safety fallback
+
   Ro = smoothedRs / factor; // Use smoothedRs here
+
+  Serial.print("Calibrated Ro: ");
+  Serial.println(Ro);
+
+  lcd.setCursor(0, 1);
+  lcd.print("Done! Ro:");
+  lcd.print(Ro);
+  delay(2000);
 }
 
 float readRs() {
