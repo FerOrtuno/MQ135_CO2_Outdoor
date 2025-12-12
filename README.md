@@ -47,6 +47,26 @@ Wiring is very simple:
     *   Select the board `Arduino Nano`.
     *   **Important:** If using a Chinese clone, select Processor: `ATmega328P (Old Bootloader)`.
 
+    *   **Important:** If using a Chinese clone, select Processor: `ATmega328P (Old Bootloader)`.
+
+## 💿 Flashing Pre-compiled Binaries (Easier)
+
+If you don't want to install the Arduino IDE and libraries, you can simply flash the pre-compiled firmware (`.hex` file) available in the **Releases** section of this repository.
+
+### Recommended Tool: XLoader (Windows)
+
+1.  Download **XLoader** (a simple tool to upload hex files).
+2.  Open `XLoader.exe`.
+3.  **Hex file:** Select the `.hex` file you downloaded (e.g., `MQ135_CO2_Outdoor.ino.nano.hex`).
+4.  **Device:** Select your board:
+    *   `Nano(ATmega328)`
+    *   `Uno(ATmega328)`
+5.  **COM port:** Select the port connected to your Arduino.
+6.  **Baud rate:**
+    *   **57600** for Arduino Nano with **Old Bootloader** (most common clones).
+    *   **115200** for Arduino Uno or Nano with New Bootloader.
+7.  Click **Upload**.
+
 ## 🚀 Usage and Calibration
 
 1.  **Thermal Acclimatization (CRITICAL):**
