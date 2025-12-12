@@ -1,0 +1,53 @@
+name: Release Arduino Binary
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Arduino CLI
+      uses: arduino/setup-arduino-cli@v1
+
+    - name: Install AVR Core
+      run: arduino-cli core update-index && arduino-cli core install arduino:avr
+
+    - name: Install Libraries
+      run: arduino-cli lib install "LiquidCrystal I2C"
+
+    - name: Compile for Nano (Old Bootloader)
+      run: |
+        arduino-cli compile --fqbn arduino:avr:nano:cpu=atmega328old --export-binaries --output-dir ./build/nano_old_bootloader .
+
+    - name: Compile for Uno
+      run: |
+        arduino-cli compile --fqbn arduino:avr:uno --export-binaries --output-dir ./build/uno .
+
+    - name: Zip Firmware
+      run: |
+        cd build
+        zip -r firmware.zip .
+
+    - name: Upload Release Asset
+      if: github.event_name == 'release'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          build/nano_old_bootloader/*.hex
+          build/uno/*.hex
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Artifact (Manual Run)
+      if: github.event_name == 'workflow_dispatch'
+      uses: actions/upload-artifact@v3
+      with:
+        name: firmware-build
+        path: build/
