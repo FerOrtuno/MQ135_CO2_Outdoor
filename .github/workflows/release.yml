@@ -36,15 +36,13 @@ jobs:
         cd build
         zip -r firmware.zip .
 
-    - name: Upload Release Asset
-      uses: softprops/action-gh-release@v1
+    - name: Create Release
+      uses: ncipollo/release-action@v1
       with:
-        files: |
-          build/nano_old_bootloader/*.hex
-          build/uno/*.hex
-          build/firmware.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        artifacts: "build/nano_old_bootloader/*.hex,build/uno/*.hex,build/firmware.zip"
+        token: ${{ secrets.GITHUB_TOKEN }}
+        generateReleaseNotes: true
+        allowUpdates: true
 
     - name: Upload Artifact (Manual Run)
       if: github.event_name == 'workflow_dispatch'
