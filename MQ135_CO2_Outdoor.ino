@@ -142,35 +142,36 @@ void calibrateSensor() {
   // Correction: If current PPM is ATM_CO2
   float factor = pow(ATM_CO2 / PARA_A, 1.0 / PARA_B);
   Ro = smoothedRs / factor; // Use smoothedRs here
+}
 
-  float readRs() {
-    // Read analog and convert to resistance
-    // Circuit: VCC -> MQ135 -> A0 -> RL -> GND
-    // Vout = VCC * (RL / (Rs + RL)) => Rs = RL * (VCC/Vout - 1)
-    // ADC = (Vout/VCC)*1023 => VCC/Vout = 1023/ADC
-    // Rs = RL * (1023/ADC - 1)
+float readRs() {
+  // Read analog and convert to resistance
+  // Circuit: VCC -> MQ135 -> A0 -> RL -> GND
+  // Vout = VCC * (RL / (Rs + RL)) => Rs = RL * (VCC/Vout - 1)
+  // ADC = (Vout/VCC)*1023 => VCC/Vout = 1023/ADC
+  // Rs = RL * (1023/ADC - 1)
 
-    long adc_sum = 0;
-    for (int i = 0; i < 20; i++) { // Average 20 readings for better stability
-      adc_sum += analogRead(PIN_MQ135);
-      delay(10);
-    }
-    float adc = adc_sum / 20.0;
-
-    // Prevent division by zero or negative
-    if (adc < 1)
-      adc = 1;
-    if (adc >= 1023)
-      adc = 1022;
-
-    float rs = RL_VALUE * (1023.0 / adc - 1.0);
-    return rs;
+  long adc_sum = 0;
+  for (int i = 0; i < 20; i++) { // Average 20 readings for better stability
+    adc_sum += analogRead(PIN_MQ135);
+    delay(10);
   }
+  float adc = adc_sum / 20.0;
 
-  float getPPM(float rs, float ro) {
-    if (ro == 0)
-      return 0; // Safety
-    float ratio = rs / ro;
-    double ppm = PARA_A * pow(ratio, PARA_B);
-    return (float)ppm;
-  }
+  // Prevent division by zero or negative
+  if (adc < 1)
+    adc = 1;
+  if (adc >= 1023)
+    adc = 1022;
+
+  float rs = RL_VALUE * (1023.0 / adc - 1.0);
+  return rs;
+}
+
+float getPPM(float rs, float ro) {
+  if (ro == 0)
+    return 0; // Safety
+  float ratio = rs / ro;
+  double ppm = PARA_A * pow(ratio, PARA_B);
+  return (float)ppm;
+}
