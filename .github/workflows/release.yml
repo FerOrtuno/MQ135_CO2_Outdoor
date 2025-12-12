@@ -35,12 +35,12 @@ jobs:
         zip -r firmware.zip .
 
     - name: Upload Release Asset
-      if: github.event_name == 'release'
       uses: softprops/action-gh-release@v1
       with:
         files: |
           build/nano_old_bootloader/*.hex
           build/uno/*.hex
+          build/firmware.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
