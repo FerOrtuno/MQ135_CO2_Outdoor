@@ -34,59 +34,21 @@ const float PARA_B = -2.769;
 
 // Stability settings
 // Stability settings
+// Stability settings
 const int STABLE_CYCLE_MS = 1000; // Match Loop speed (1s) for power consistency
 const float STABILITY_THRESHOLD = 0.5; // Max deviation in % to consider stable
 const int STABILITY_SAMPLES = 60;      // Increase samples (60 * 1s = 1 min)
 
+// Empirical Compensation
+// The sensor consistently drifts Rs upwards by ~5% after calibration phase
+// (likely due to thermal changes when entering main loop), causing PPM to drop.
+// Observed: Drops from 427ppm to ~378ppm. Correction: 427.48 / 378 ~= 1.13
+const float COMPENSATION_FACTOR = 1.13;
+
 // Objects
-// Ajustar dirección 0x27 o 0x3F según el módulo I2C
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+// ... (rest of code)
 
-float Ro = 10.0; // Will be calibrated
-bool calibrated = false;
-float smoothedRs = 0; // Global EMA filter
-
-float readRs();
-float getPPM(float rs, float ro);
-void calibrateSensor();
-
-void setup() {
-  Serial.begin(9600);
-  lcd.init();
-  lcd.backlight();
-
-  pinMode(PIN_MQ135, INPUT);
-
-  // Initial Warning Sequence
-  lcd.clear();
-  lcd.print("IMPORTANT:");
-  lcd.setCursor(0, 1);
-  lcd.print("ACCLIMATIZATION");
-  delay(2000);
-
-  lcd.clear();
-  lcd.print("move Outdoor");
-  lcd.setCursor(0, 1);
-  lcd.print("Wait 10min OFF");
-  delay(3000);
-
-  lcd.clear();
-  lcd.print("MQ-135 Init...");
-
-  Serial.println("--------------------------------------------------");
-  Serial.println("IMPORTANT: If moving from indoors to outdoors,");
-  Serial.println("leave device OFF for 10 mins outside before ON");
-  Serial.println("to allow thermal acclimation of the sensor body.");
-  Serial.println("--------------------------------------------------");
-
-  delay(1000);
-
-  // Calibration Routine
-  calibrateSensor();
-  Serial.println("Setup done. Entering Loop...");
-  Serial.flush();
-}
-
+// ... inside loop ...
 void loop() {
   Serial.println("Loop start");
   float currentRs = readRs();
@@ -96,184 +58,258 @@ void loop() {
     smoothedRs = currentRs;
   smoothedRs = 0.1 * currentRs + 0.9 * smoothedRs;
 
-  float ppm = getPPM(smoothedRs, Ro);
+  float ppmBase = getPPM(smoothedRs, Ro);
+  float ppm = ppmBase * COMPENSATION_FACTOR;
 
-  // Output to Serial (Unchanged)
+  // Output to Serial
   Serial.print("Rs(raw): ");
   Serial.print(currentRs);
   Serial.print(" | Rs(smooth): ");
   Serial.print(smoothedRs);
   Serial.print(" kOhm | CO2: ");
+  Serial.print(ppmBase);
+  Serial.print(" x ");
+  Serial.print(COMPENSATION_FACTOR);
+  Serial.print(" -> ");
   Serial.print(ppm);
   Serial.println(" ppm");
 
-  // Determine Quality - Use const char* to avoid memory fragmentation
-  const char *status = "";
-  if (ppm < 800) {
-    status = "Air: Excellent";
-  } else if (ppm < 1200) {
-    status = "Air: Good";
-  } else if (ppm < 2000) {
-    status = "Warn: Ventilate";
-  } else if (ppm < 5000) {
-    status = "Unhealthy!";
-  } else {
-    status = "DANGER! TOXIC";
+  // ... (rest of loop)
+  // Ajustar dirección 0x27 o 0x3F según el módulo I2C
+  LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+  float Ro = 10.0; // Will be calibrated
+  bool calibrated = false;
+  float smoothedRs = 0; // Global EMA filter
+
+  float readRs();
+  float getPPM(float rs, float ro);
+  void calibrateSensor();
+
+  void setup() {
+    Serial.begin(9600);
+    lcd.init();
+    lcd.backlight();
+
+    pinMode(PIN_MQ135, INPUT);
+
+    // Initial Warning Sequence
+    lcd.clear();
+    lcd.print("IMPORTANT:");
+    lcd.setCursor(0, 1);
+    lcd.print("ACCLIMATIZATION");
+    delay(2000);
+
+    lcd.clear();
+    lcd.print("move Outdoor");
+    lcd.setCursor(0, 1);
+    lcd.print("Wait 10min OFF");
+    delay(3000);
+
+    lcd.clear();
+    lcd.print("MQ-135 Init...");
+
+    Serial.println("--------------------------------------------------");
+    Serial.println("IMPORTANT: If moving from indoors to outdoors,");
+    Serial.println("leave device OFF for 10 mins outside before ON");
+    Serial.println("to allow thermal acclimation of the sensor body.");
+    Serial.println("--------------------------------------------------");
+
+    delay(1000);
+
+    // Calibration Routine
+    calibrateSensor();
+    Serial.println("Setup done. Entering Loop...");
+    Serial.flush();
   }
 
-  // Output to LCD
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("CO2: ");
-  lcd.print(ppm, 0);
-  lcd.print(" ppm");
+  void loop() {
+    Serial.println("Loop start");
+    float currentRs = readRs();
 
-  lcd.setCursor(0, 1);
-  lcd.print(status);
+    // EMA Filter
+    if (smoothedRs == 0)
+      smoothedRs = currentRs;
+    smoothedRs = 0.1 * currentRs + 0.9 * smoothedRs;
 
-  delay(1000);
-}
+    float ppm = getPPM(smoothedRs, Ro);
 
-void calibrateSensor() {
-  lcd.clear();
-  lcd.print("Warming up...");
-  Serial.println("Waiting for sensor stability...");
+    // Output to Serial (Unchanged)
+    Serial.print("Rs(raw): ");
+    Serial.print(currentRs);
+    Serial.print(" | Rs(smooth): ");
+    Serial.print(smoothedRs);
+    Serial.print(" kOhm | CO2: ");
+    Serial.print(ppm);
+    Serial.println(" ppm");
 
-  float lastRs = 0;
-  int stableCount = 0;
-  unsigned long timer = millis();
+    // Determine Quality - Use const char* to avoid memory fragmentation
+    const char *status = "";
+    if (ppm < 800) {
+      status = "Air: Excellent";
+    } else if (ppm < 1200) {
+      status = "Air: Good";
+    } else if (ppm < 2000) {
+      status = "Warn: Ventilate";
+    } else if (ppm < 5000) {
+      status = "Unhealthy!";
+    } else {
+      status = "DANGER! TOXIC";
+    }
 
-  // PRE-HEATING: Mandatory 3 minutes to reach thermal equilibrium
-  // MQ sensors drift significantly during the first minutes of heating.
-  // We force a wait to ensure the subsequent calibration is valid.
-  const int PREHEAT_SECONDS = 180;
-  for (int i = 0; i < PREHEAT_SECONDS; i++) {
+    // Output to LCD
+    lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Pre-heating...  ");
+    lcd.print("CO2: ");
+    lcd.print(ppm, 0);
+    lcd.print(" ppm");
+
     lcd.setCursor(0, 1);
-    lcd.print("Wait: ");
-    lcd.print(PREHEAT_SECONDS - i);
-    lcd.print("s   ");
+    lcd.print(status);
 
-    // Keep reading to update internal ADC but ignore value
-    readRs();
-
-    Serial.print("Pre-heat: ");
-    Serial.print(PREHEAT_SECONDS - i);
-    Serial.println("s");
     delay(1000);
   }
 
-  // Initialize filter with current value after pre-heat
-  smoothedRs = readRs();
+  void calibrateSensor() {
+    lcd.clear();
+    lcd.print("Warming up...");
+    Serial.println("Waiting for sensor stability...");
 
-  // Wait loop until stability is reached
-  while (stableCount < STABILITY_SAMPLES) {
-    if (millis() - timer > STABLE_CYCLE_MS) {
-      timer = millis();
-      float currentRs = readRs();
+    float lastRs = 0;
+    int stableCount = 0;
+    unsigned long timer = millis();
 
-      // Update EMA during calibration
-      smoothedRs = 0.1 * currentRs + 0.9 * smoothedRs;
-
-      // Check stability on SMOOTHED value to avoid noise resetting counter
-      // Or check RAW if strict. Let's check MEAN (Smoothed) variation
-      // but compared to previous smoothed.
-
-      float deviation = 100.0;
-      if (lastRs > 0) {
-        deviation = abs(smoothedRs - lastRs) / lastRs * 100.0;
-      }
-
-      Serial.print("Rs(sm): ");
-      Serial.print(smoothedRs);
-      Serial.print(" Dev: ");
-      Serial.print(deviation);
-      Serial.println("%");
-
-      // Update LCD Status - mimics loop load
+    // PRE-HEATING: Mandatory 3 minutes to reach thermal equilibrium
+    // MQ sensors drift significantly during the first minutes of heating.
+    // We force a wait to ensure the subsequent calibration is valid.
+    const int PREHEAT_SECONDS = 180;
+    for (int i = 0; i < PREHEAT_SECONDS; i++) {
+      lcd.setCursor(0, 0);
+      lcd.print("Pre-heating...  ");
       lcd.setCursor(0, 1);
-      lcd.print("Rs:");
-      lcd.print(smoothedRs, 1);
-      lcd.print("k ");
+      lcd.print("Wait: ");
+      lcd.print(PREHEAT_SECONDS - i);
+      lcd.print("s   ");
 
-      lcd.setCursor(14, 1);
-      lcd.print(stableCount % 2 == 0 ? "." : "o");
+      // Keep reading to update internal ADC but ignore value
+      readRs();
 
-      if (deviation < STABILITY_THRESHOLD && lastRs > 0) {
-        stableCount++;
-      } else {
-        // If deviating, reset, but maybe don't reset fully if just minor noise?
-        // Keep strict reset for now.
-        if (deviation > STABILITY_THRESHOLD)
-          stableCount = 0;
-      }
-
-      lastRs = smoothedRs; // Compare against smoothed
+      Serial.print("Pre-heat: ");
+      Serial.print(PREHEAT_SECONDS - i);
+      Serial.println("s");
+      delay(1000);
     }
+
+    // Initialize filter with current value after pre-heat
+    smoothedRs = readRs();
+
+    // Wait loop until stability is reached
+    while (stableCount < STABILITY_SAMPLES) {
+      if (millis() - timer > STABLE_CYCLE_MS) {
+        timer = millis();
+        float currentRs = readRs();
+
+        // Update EMA during calibration
+        smoothedRs = 0.1 * currentRs + 0.9 * smoothedRs;
+
+        // Check stability on SMOOTHED value to avoid noise resetting counter
+        // Or check RAW if strict. Let's check MEAN (Smoothed) variation
+        // but compared to previous smoothed.
+
+        float deviation = 100.0;
+        if (lastRs > 0) {
+          deviation = abs(smoothedRs - lastRs) / lastRs * 100.0;
+        }
+
+        Serial.print("Rs(sm): ");
+        Serial.print(smoothedRs);
+        Serial.print(" Dev: ");
+        Serial.print(deviation);
+        Serial.println("%");
+
+        // Update LCD Status - mimics loop load
+        lcd.setCursor(0, 1);
+        lcd.print("Rs:");
+        lcd.print(smoothedRs, 1);
+        lcd.print("k ");
+
+        lcd.setCursor(14, 1);
+        lcd.print(stableCount % 2 == 0 ? "." : "o");
+
+        if (deviation < STABILITY_THRESHOLD && lastRs > 0) {
+          stableCount++;
+        } else {
+          // If deviating, reset, but maybe don't reset fully if just minor
+          // noise? Keep strict reset for now.
+          if (deviation > STABILITY_THRESHOLD)
+            stableCount = 0;
+        }
+
+        lastRs = smoothedRs; // Compare against smoothed
+      }
+    }
+
+    // Stability reached, calculate Ro using SMOOTHED Rs
+    Serial.println("Stable! Calibrating to 427.48 ppm...");
+    Serial.flush();
+
+    lcd.clear();
+    lcd.print("Calib to 427ppm");
+    delay(1000);
+
+    // Correction: If current PPM is ATM_CO2
+    // Factor = (ATM_CO2 / PARA_A) ^ (1 / PARA_B)
+    // Factor = (427.48 / 116.602) ^ (1 / -2.769) approx 0.623
+    // Calculating manually to avoid runtime pow issues if any.
+    float base = ATM_CO2 / PARA_A;
+    float exponent = 1.0 / PARA_B;
+    float factor = pow(base, exponent);
+
+    Serial.print("Factor: ");
+    Serial.println(factor);
+
+    if (factor == 0)
+      factor = 0.623; // Safety fallback
+
+    Ro = smoothedRs / factor; // Use smoothedRs here
+
+    Serial.print("Calibrated Ro: ");
+    Serial.println(Ro);
+
+    lcd.setCursor(0, 1);
+    lcd.print("Done! Ro:");
+    lcd.print(Ro);
+    delay(2000);
   }
 
-  // Stability reached, calculate Ro using SMOOTHED Rs
-  Serial.println("Stable! Calibrating to 427.48 ppm...");
-  Serial.flush();
+  float readRs() {
+    // Read analog and convert to resistance
+    // Circuit: VCC -> MQ135 -> A0 -> RL -> GND
+    // Vout = VCC * (RL / (Rs + RL)) => Rs = RL * (VCC/Vout - 1)
+    // ADC = (Vout/VCC)*1023 => VCC/Vout = 1023/ADC
+    // Rs = RL * (1023/ADC - 1)
 
-  lcd.clear();
-  lcd.print("Calib to 427ppm");
-  delay(1000);
+    long adc_sum = 0;
+    for (int i = 0; i < 20; i++) { // Average 20 readings for better stability
+      adc_sum += analogRead(PIN_MQ135);
+      delay(10);
+    }
+    float adc = adc_sum / 20.0;
 
-  // Correction: If current PPM is ATM_CO2
-  // Factor = (ATM_CO2 / PARA_A) ^ (1 / PARA_B)
-  // Factor = (427.48 / 116.602) ^ (1 / -2.769) approx 0.623
-  // Calculating manually to avoid runtime pow issues if any.
-  float base = ATM_CO2 / PARA_A;
-  float exponent = 1.0 / PARA_B;
-  float factor = pow(base, exponent);
+    // Prevent division by zero or negative
+    if (adc < 1)
+      adc = 1;
+    if (adc >= 1023)
+      adc = 1022;
 
-  Serial.print("Factor: ");
-  Serial.println(factor);
-
-  if (factor == 0)
-    factor = 0.623; // Safety fallback
-
-  Ro = smoothedRs / factor; // Use smoothedRs here
-
-  Serial.print("Calibrated Ro: ");
-  Serial.println(Ro);
-
-  lcd.setCursor(0, 1);
-  lcd.print("Done! Ro:");
-  lcd.print(Ro);
-  delay(2000);
-}
-
-float readRs() {
-  // Read analog and convert to resistance
-  // Circuit: VCC -> MQ135 -> A0 -> RL -> GND
-  // Vout = VCC * (RL / (Rs + RL)) => Rs = RL * (VCC/Vout - 1)
-  // ADC = (Vout/VCC)*1023 => VCC/Vout = 1023/ADC
-  // Rs = RL * (1023/ADC - 1)
-
-  long adc_sum = 0;
-  for (int i = 0; i < 20; i++) { // Average 20 readings for better stability
-    adc_sum += analogRead(PIN_MQ135);
-    delay(10);
+    float rs = RL_VALUE * (1023.0 / adc - 1.0);
+    return rs;
   }
-  float adc = adc_sum / 20.0;
 
-  // Prevent division by zero or negative
-  if (adc < 1)
-    adc = 1;
-  if (adc >= 1023)
-    adc = 1022;
-
-  float rs = RL_VALUE * (1023.0 / adc - 1.0);
-  return rs;
-}
-
-float getPPM(float rs, float ro) {
-  if (ro == 0)
-    return 0; // Safety
-  float ratio = rs / ro;
-  double ppm = PARA_A * pow(ratio, PARA_B);
-  return (float)ppm;
-}
+  float getPPM(float rs, float ro) {
+    if (ro == 0)
+      return 0; // Safety
+    float ratio = rs / ro;
+    double ppm = PARA_A * pow(ratio, PARA_B);
+    return (float)ppm;
+  }
