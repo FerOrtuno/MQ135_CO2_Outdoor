@@ -143,7 +143,28 @@ void calibrateSensor() {
   int stableCount = 0;
   unsigned long timer = millis();
 
-  // Initialize filter
+  // PRE-HEATING: Mandatory 3 minutes to reach thermal equilibrium
+  // MQ sensors drift significantly during the first minutes of heating.
+  // We force a wait to ensure the subsequent calibration is valid.
+  const int PREHEAT_SECONDS = 180;
+  for (int i = 0; i < PREHEAT_SECONDS; i++) {
+    lcd.setCursor(0, 0);
+    lcd.print("Pre-heating...  ");
+    lcd.setCursor(0, 1);
+    lcd.print("Wait: ");
+    lcd.print(PREHEAT_SECONDS - i);
+    lcd.print("s   ");
+
+    // Keep reading to update internal ADC but ignore value
+    readRs();
+
+    Serial.print("Pre-heat: ");
+    Serial.print(PREHEAT_SECONDS - i);
+    Serial.println("s");
+    delay(1000);
+  }
+
+  // Initialize filter with current value after pre-heat
   smoothedRs = readRs();
 
   // Wait loop until stability is reached
